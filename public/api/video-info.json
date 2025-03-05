@@ -1,0 +1,25 @@
+{
+    "videos": [
+      {
+        "filename": "sample.mp4",
+        "title": "Sample Video",
+        "duration": 120,
+        "resolution": "1280x720",
+        "size": "5.2 MB"
+      },
+      {
+        "filename": "intro.mp4",
+        "title": "Introduction Video",
+        "duration": 180,
+        "resolution": "1920x1080",
+        "size": "8.7 MB"
+      },
+      {
+        "filename": "tutorial.mp4",
+        "title": "Tutorial Video",
+        "duration": 300,
+        "resolution": "1280x720", 
+        "size": "12.4 MB"
+      }
+    ]
+  }

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MP4 Video Streaming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .video-container {
+            width: 100%;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+        }
+        select {
+            padding: 8px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 300px;
+        }
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .metrics {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .graph-container {
+            background-color: white;
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            height: 150px;
+            position: relative;
+        }
+        .data-point {
+            position: absolute;
+            width: 2px;
+            background-color: #4CAF50;
+            bottom: 20px;
+            transition: height 0.3s ease;
+        }
+        .data-value {
+            position: absolute;
+            font-size: 10px;
+            transform: rotate(-90deg);
+            transform-origin: left top;
+            white-space: nowrap;
+            color: #666;
+        }
+        .label {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            height: 20px;
+        }
+        .graph-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            padding-left: 30px; 
+        }
+        .stat-box {
+            padding: 15px;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .fps-graph {
+            background-color: #e6f7ff;
+        }
+        .fps-point {
+            background-color: #0077cc;
+        }
+        .latency-graph {
+            background-color: #fff8e6;
+        }
+        .latency-point {
+            background-color: #ff9900;
+        }
+        .latency-value {
+            position: absolute;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            top: 70px;
+        }
+        .graph-y-axis {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 30px;
+            border-right: 1px dashed #ddd;
+        }
+        .y-tick {
+            position: absolute;
+            right: 5px;
+            transform: translateY(-50%);
+            font-size: 9px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <h1>Video Streaming Server</h1>
+        </div>
+        <div class="video-container">
+            <video id="videoPlayer" controls playsinline>
+                <source src="/videos/sample.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        <div>
+            <label for="videoSelect">Select Video:</label>
+            <select id="videoSelect" onchange="changeVideo()">
+                <option value="/videos/sample.mp4">Loading videos...</option>
+            </select>
+        </div>
+        
+        <div class="metrics">
+            <h3>Stream Analytics</h3>
+            <div id="streamInfo">
+                <p>Resolution: <span id="resolution">Loading...</span></p>
+                <p>Current Bitrate: <span id="bitrate">Calculating...</span></p>
+                <p>Buffered: <span id="buffered">0%</span></p>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="graph-container" id="bitrateGraph">
+                    <div class="graph-title">Bitrate History (kbps)</div>
+                    <div class="graph-y-axis" id="bitrateAxis"></div>
+                    <div class="label">Real-time (last 60 points)</div>
+                </div>
+                <div class="graph-container" id="bufferGraph">
+                    <div class="graph-title">Buffer Level (%)</div>
+                    <div class="graph-y-axis" id="bufferAxis"></div>
+                    <div class="label">Real-time (last 60 points)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Video Duration</div>
+                    <div class="stat-value" id="videoDuration">0:00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Buffer Events</div>
+                    <div class="stat-value" id="bufferEvents">0</div>
+                </div>
+                <div class="graph-container fps-graph" id="fpsGraph">
+                    <div class="graph-title">Frame Rate (estimated fps)</div>
+                    <div class="graph-y-axis" id="fpsAxis"></div>
+                    <div class="label">Real-time monitoring</div>
+                </div>
+                <div class="graph-container latency-graph" id="latencyGraph">
+                    <div class="graph-title">Playback Latency</div>
+                    <div class="latency-value" id="latencyValue">Calculating...</div>
+                    <div class="label">Time to first frame (ms)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videoPlayer = document.getElementById('videoPlayer');
+        const resolutionElement = document.getElementById('resolution');
+        const bitrateElement = document.getElementById('bitrate');
+        const bufferedElement = document.getElementById('buffered');
+        const videoDurationElement = document.getElementById('videoDuration');
+        const bufferEventsElement = document.getElementById('bufferEvents');
+        const bitrateGraph = document.getElementById('bitrateGraph');
+        const bufferGraph = document.getElementById('bufferGraph');
+        const fpsGraph = document.getElementById('fpsGraph');
+        const latencyGraph = document.getElementById('latencyGraph');
+        const latencyValueElement = document.getElementById('latencyValue');
+        const bitrateAxis = document.getElementById('bitrateAxis');
+        const bufferAxis = document.getElementById('bufferAxis');
+        const fpsAxis = document.getElementById('fpsAxis');
+        
+        let startTime = Date.now();
+        let loadedBytes = 0;
+        let lastLoadedBytes = 0;
+        let bufferEvents = 0;
+        let isPlaying = false;
+        let lastPlayingState = false;
+        let loadStartTime = 0;
+        let firstFrameTime = 0;
+        let frameCount = 0;
+        let lastFrameTime = 0;
+        let fpsValues = Array(60).fill(0);
+        let latencyValue = 0;
+        
+        let bitrateHistory = Array(60).fill(0);
+        let bufferHistory = Array(60).fill(0);
+        
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' + secs : secs}`;
+        }
+        
+        function createYAxis(element, maxValue, unit, steps = 5) {
+            element.innerHTML = '';
+            
+            for (let i = 0; i <= steps; i++) {
+                const value = Math.round(maxValue * (i / steps));
+                const tick = document.createElement('div');
+                tick.className = 'y-tick';
+                tick.style.bottom = `${(i / steps) * 100}%`;
+                tick.textContent = unit ? `${value}${unit}` : value;
+                element.appendChild(tick);
+            }
+        }
+        
+        function updateBitrateGraph() {
+            bitrateGraph.querySelectorAll('.data-point, .data-value').forEach(el => el.remove());
+            
+            let maxBitrate = Math.max(...bitrateHistory, 1);
+            createYAxis(bitrateAxis, maxBitrate, '', 4);
+            
+            bitrateHistory.forEach((value, index) => {
+                const point = document.createElement('div');
+                point.className = 'data-point';
+                const height = (value / maxBitrate) * 100;
+                point.style.height = `${height}px`;
+                point.style.left = `${(index / 60) * 100}%`;
+                
+                
+                if (index % 10 === 0 && value > 0) {
+                    const valueLabel = document.createElement('div');
+                    valueLabel.className = 'data-value';
+                    valueLabel.textContent = value;
+                    valueLabel.style.left = `${(index / 60) * 100}%`;
+                    valueLabel.style.bottom = `${height + 2}px`;
+                    bitrateGraph.appendChild(valueLabel);
+                }
+                
+                bitrateGraph.appendChild(point);
+            });
+        }
+        
+        function updateBufferGraph() {
+            bufferGraph.querySelectorAll('.data-point, .data-value').forEach(el => el.remove());
+            
+            createYAxis(bufferAxis, 100, '%', 4);
+            
+            bufferHistory.forEach((value, index) => {
+                const point = document.createElement('div');
+                point.className = 'data-point';
+                point.style.height = `${value}px`;
+                point.style.left = `${(index / 60) * 100}%`;
+                
+                if (index % 10 === 0 && value > 0) {
+                    const valueLabel = document.createElement('div');
+                    valueLabel.className = 'data-value';
+                    valueLabel.textContent = `${value}%`;
+                    valueLabel.style.left = `${(index / 60) * 100}%`;
+                    valueLabel.style.bottom = `${value + 2}px`;
+                    bufferGraph.appendChild(valueLabel);
+                }
+                
+                bufferGraph.appendChild(point);
+            });
+        }
+        
+        function updateFpsGraph() {
+            fpsGraph.querySelectorAll('.data-point, .data-value').forEach(el => el.remove());
+            
+            let maxFps = Math.max(...fpsValues, 30);
+            createYAxis(fpsAxis, maxFps, '', 4);
+            
+            fpsValues.forEach((value, index) => {
+                const point = document.createElement('div');
+                point.className = 'data-point fps-point';
+                const height = (value / maxFps) * 100;
+                point.style.height = `${height}px`;
+                point.style.left = `${(index / 60) * 100}%`;
+                
+                if (index % 10 === 0 && value > 0) {
+                    const valueLabel = document.createElement('div');
+                    valueLabel.className = 'data-value';
+                    valueLabel.textContent = value;
+                    valueLabel.style.left = `${(index / 60) * 100}%`;
+                    valueLabel.style.bottom = `${height + 2}px`;
+                    fpsGraph.appendChild(valueLabel);
+                }
+                
+                fpsGraph.appendChild(point);
+            });
+        }
+        
+        function updateLatencyGraph() {
+            latencyGraph.querySelectorAll('.data-point').forEach(el => el.remove());
+            
+            if (latencyValue > 0) {
+                
+                const point = document.createElement('div');
+                point.className = 'data-point latency-point';
+                const height = Math.min(latencyValue / 10, 100);
+                point.style.height = `${height}px`;
+                point.style.left = '50%';
+                point.style.width = '30px';
+                latencyGraph.appendChild(point);
+                latencyValueElement.textContent = `${latencyValue}ms`;
+            }
+        }
+        
+        function calculateFps() {
+            const now = performance.now();
+            const elapsed = now - lastFrameTime;
+            
+            if (lastFrameTime > 0 && elapsed < 1000) {
+                const currentFps = Math.round(1000 / elapsed);
+                fpsValues.shift();
+                fpsValues.push(currentFps);
+                updateFpsGraph();
+            }
+            
+            lastFrameTime = now;
+            frameCount++;
+            
+            if (isPlaying && videoPlayer.readyState > 2) {
+                requestAnimationFrame(calculateFps);
+            }
+        }
+        
+        videoPlayer.addEventListener('loadstart', function() {
+            loadStartTime = performance.now();
+            firstFrameTime = 0;
+            latencyValueElement.textContent = 'Calculating...';
+        });
+        
+        videoPlayer.addEventListener('loadeddata', function() {
+            if (firstFrameTime === 0) {
+                firstFrameTime = performance.now();
+                latencyValue = Math.round(firstFrameTime - loadStartTime);
+                latencyValueElement.textContent = `${latencyValue}ms`;
+                updateLatencyGraph();
+            }
+        });
+        
+        videoPlayer.addEventListener('loadedmetadata', function() {
+            resolutionElement.textContent = `${this.videoWidth}x${this.videoHeight}`;
+            videoDurationElement.textContent = formatTime(this.duration);
+        });
+        
+        videoPlayer.addEventListener('progress', function() {
+            if (this.buffered.length > 0) {
+                const bufferedEnd = this.buffered.end(this.buffered.length - 1);
+                const duration = this.duration;
+                const bufferedPercent = Math.floor((bufferedEnd / duration) * 100);
+                bufferedElement.textContent = `${bufferedPercent}%`;
+                
+                bufferHistory.shift();
+                bufferHistory.push(bufferedPercent);
+                updateBufferGraph();
+            }
+        });
+        
+        videoPlayer.addEventListener('playing', function() {
+            isPlaying = true;
+            if (!lastPlayingState) {
+                bufferEvents++;
+                bufferEventsElement.textContent = bufferEvents;
+                lastPlayingState = true;
+                lastFrameTime = performance.now();
+                requestAnimationFrame(calculateFps);
+            }
+        });
+        
+        videoPlayer.addEventListener('pause', function() {
+            isPlaying = false;
+            lastPlayingState = false;
+        });
+        
+        videoPlayer.addEventListener('waiting', function() {
+            if (lastPlayingState) {
+                bufferEvents++;
+                bufferEventsElement.textContent = bufferEvents;
+                lastPlayingState = false;
+            }
+        });
+        setInterval(function() {
+            if (videoPlayer.readyState > 0) {
+                const videoDuration = videoPlayer.duration;
+                const videoBytes = videoPlayer.buffered.length > 0 ? 
+                    (videoPlayer.buffered.end(0) / videoDuration) * (1024 * 1024) : 0;
+                const elapsedSeconds = (Date.now() - startTime) / 1000;
+                
+                if (elapsedSeconds > 0 && videoBytes > lastLoadedBytes) {
+                    const bitsPerSecond = ((videoBytes - lastLoadedBytes) * 8) / elapsedSeconds;
+                    const kbps = Math.round(bitsPerSecond);
+                    bitrateElement.textContent = `${kbps} kbps`;
+                    
+                    bitrateHistory.shift();
+                    bitrateHistory.push(kbps);
+                    updateBitrateGraph();
+                    
+                    lastLoadedBytes = videoBytes;
+                    startTime = Date.now();
+                }
+            }
+        }, 100);
+        
+        videoPlayer.addEventListener('play', function() {
+            const sessionData = {
+                videoId: videoPlayer.currentSrc.split('/').pop(),
+                startTime: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                screenSize: `${window.innerWidth}x${window.innerHeight}`
+            };
+            sessionStorage.setItem('videoSession', JSON.stringify(sessionData));
+            
+            logStreamEvent('play');
+        });
+        
+        videoPlayer.addEventListener('ended', function() {
+            logStreamEvent('complete');
+        });
+        
+        videoPlayer.addEventListener('pause', function() {
+            logStreamEvent('pause');
+        });
+        
+        function logStreamEvent(eventType) {
+            console.log(`Stream event: ${eventType}`);
+            
+            const events = JSON.parse(localStorage.getItem('streamEvents') || '[]');
+            events.push({
+                type: eventType,
+                time: new Date().toISOString(),
+                videoId: videoPlayer.currentSrc.split('/').pop(),
+                position: videoPlayer.currentTime
+            });
+            localStorage.setItem('streamEvents', JSON.stringify(events));
+            
+            if (window.MetricsTracker) {
+                window.MetricsTracker.recordStreamEvent(
+                    videoPlayer.currentSrc.split('/').pop(),
+                    eventType,
+                    videoPlayer.currentTime,
+                    videoPlayer.duration,
+                    `${videoPlayer.videoWidth}x${videoPlayer.videoHeight}`
+                );
+            }
+        }
+        function listVideoFilesDirectly() {
+            fetch('/videos/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    const links = [];
+                    const regex = /<a href="([^"]+\.mp4)"[^>]*>(.*?)<\/a>/gi;
+                    let match;
+                    
+                    while ((match = regex.exec(html)) !== null) {
+                        links.push({
+                            href: match[1],
+                            text: match[2]
+                        });
+                    }
+                    
+                    const select = document.getElementById('videoSelect');
+                    select.innerHTML = '';
+                    
+                    if (links.length > 0) {
+                        links.forEach(link => {
+                            const option = document.createElement('option');
+                            option.value = `/videos/${link.href}`;
+                            option.textContent = decodeURIComponent(link.href);
+                            select.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = '/videos/sample.mp4';
+                        option.textContent = 'sample.mp4';
+                        select.appendChild(option);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error listing videos:', error);
+                    fetchVideosFromApi();
+                });
+        }
+
+        function fetchVideos() {
+            
+            fetch('/videos/')
+                .then(response => response.text())
+                .then(html => {
+                    const regex = /<a href="([^"]+\.mp4)"[^>]*>(.*?)<\/a>/gi;
+                    const videoFiles = [];
+                    let match;
+                    
+                    while ((match = regex.exec(html)) !== null) {
+                        videoFiles.push({
+                            filename: match[1],
+                            title: match[1] 
+                        });
+                    }
+                    
+                    
+                    const select = document.getElementById('videoSelect');
+                    select.innerHTML = '';
+                    
+                    if (videoFiles.length > 0) {
+                        videoFiles.forEach(video => {
+                            const option = document.createElement('option');
+                            option.value = `/videos/${video.filename}`;
+                            option.textContent = decodeURIComponent(video.filename);
+                            select.appendChild(option);
+                        });
+                    } else {
+                        
+                        const option = document.createElement('option');
+                        option.value = '/videos/sample.mp4';
+                        option.textContent = 'sample.mp4';
+                        select.appendChild(option);
+                    }
+            })
+            .catch(error => {
+                console.error('Error listing videos:', error);
+                const select = document.getElementById('videoSelect');
+                select.innerHTML = '';
+                const option = document.createElement('option');
+                option.value = '/videos/sample.mp4';
+                option.textContent = 'sample.mp4';
+                select.appendChild(option);
+            });
+        }
+
+        function changeVideo() {
+            const select = document.getElementById('videoSelect');
+            const video = document.getElementById('videoPlayer');
+            
+            video.src = select.value;
+            video.load();
+            video.play();
+            
+            startTime = Date.now();
+            loadedBytes = 0;
+            lastLoadedBytes = 0;
+            bitrateHistory = Array(60).fill(0);
+            bufferHistory = Array(60).fill(0);
+            fpsValues = Array(60).fill(0);
+            bufferEvents = 0;
+            isPlaying = true;
+            lastPlayingState = true;
+            loadStartTime = performance.now();
+            firstFrameTime = 0;
+            frameCount = 0;
+            lastFrameTime = 0;
+            
+            resolutionElement.textContent = 'Loading...';
+            bitrateElement.textContent = 'Calculating...';
+            bufferedElement.textContent = '0%';
+            bufferEventsElement.textContent = '0';
+            videoDurationElement.textContent = '0:00';
+            latencyValueElement.textContent = 'Calculating...';
+            
+            updateBitrateGraph();
+            updateBufferGraph();
+            updateFpsGraph();
+            latencyGraph.querySelectorAll('.data-point').forEach(el => el.remove());
+        }
+        
+        window.addEventListener('DOMContentLoaded', (event) => {
+            listVideoFilesDirectly();
+            createYAxis(bitrateAxis, 100, '', 4);
+            createYAxis(bufferAxis, 100, '%', 4);
+            createYAxis(fpsAxis, 30, '', 4);
+            updateBitrateGraph();
+            updateBufferGraph();
+            updateFpsGraph();
+        });
+    </script>
+    <script src="/js/metrics.js"></script>
+</body>
+</html>

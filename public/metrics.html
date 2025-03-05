@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Streaming Metrics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .metric-card {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .metric-title {
+            font-size: 14px;
+            color: #666;
+        }
+        .chart-container {
+            height: 300px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <h1>Streaming Metrics Dashboard</h1>
+            <a href="/" class="btn">Back to Player</a>
+        </div>
+
+        <div class="metric-rows" style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <div class="metric-card" style="flex: 1; min-width: 200px; margin: 10px;">
+                <div class="metric-title">Active Streams</div>
+                <div class="metric-value" id="activeStreams">0</div>
+            </div>
+            <div class="metric-card" style="flex: 1; min-width: 200px; margin: 10px;">
+                <div class="metric-title">Total Views Today</div>
+                <div class="metric-value" id="totalViews">0</div>
+            </div>
+            <div class="metric-card" style="flex: 1; min-width: 200px; margin: 10px;">
+                <div class="metric-title">Avg. Watch Time</div>
+                <div class="metric-value" id="avgWatchTime">0:00</div>
+            </div>
+            <div class="metric-card" style="flex: 1; min-width: 200px; margin: 10px;">
+                <div class="metric-title">Bandwidth Usage</div>
+                <div class="metric-value" id="bandwidth">0 MB</div>
+            </div>
+        </div>
+
+        <h2>Recent Sessions</h2>
+        <table id="sessionsTable">
+            <thead>
+                <tr>
+                    <th>Video</th>
+                    <th>Start Time</th>
+                    <th>Duration</th>
+                    <th>Device</th>
+                    <th>Resolution</th>
+                </tr>
+            </thead>
+            <tbody id="sessionsBody">
+                <tr>
+                    <td colspan="5" style="text-align: center;">No sessions recorded yet</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Popular Videos</h2>
+        <table id="videosTable">
+            <thead>
+                <tr>
+                    <th>Video</th>
+                    <th>Views</th>
+                    <th>Avg. Watch Time</th>
+                    <th>Completion Rate</th>
+                </tr>
+            </thead>
+            <tbody id="videosBody">
+                <tr>
+                    <td colspan="4" style="text-align: center;">No video data available</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="/js/metrics.js"></script>
+</body>
+</html>
+```
+        </div>
+        <div>
+            <label for="videoSelect">Select Video:</label>
+            <select id="videoSelect" onchange="changeVideo()">
+                <option value="/videos/sample.mp4">Sample Video</option>
+            </select>
+        </div>
+        
+        <div class="metrics">
+            <h3>Current Stream Info</h3>
+            <div id="streamInfo">
+                <p>Resolution: <span id="resolution">Loading...</span></p>
+                <p>Current Bitrate: <span id="bitrate">Calculating...</span></p>
+                <p>Buffered: <span id="buffered">0%</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videoPlayer = document.getElementById('videoPlayer');
+        const resolutionElement = document.getElementById('resolution');
+        const bitrateElement = document.getElementById('bitrate');
+        const bufferedElement = document.getElementById('buffered');
+        
+        let startTime = Date.now();
+        let loadedBytes = 0;
+        let lastLoadedBytes = 0;
+        
+        videoPlayer.addEventListener('loadedmetadata', function() {
+            resolutionElement.textContent = `${this.videoWidth}x${this.videoHeight}`;
+        });
+        
+        videoPlayer.addEventListener('progress', function() {
+            if (this.buffered.length > 0) {
+                const bufferedEnd = this.buffered.end(this.buffered.length - 1);
+                const duration = this.duration;
+                const bufferedPercent = Math.floor((bufferedEnd / duration) * 100);
+                bufferedElement.textContent = `${bufferedPercent}%`;
+            }
+        });
+        
+        setInterval(function() {
+            if (videoPlayer.readyState > 0) {
+                const videoDuration = videoPlayer.duration;
+                const videoBytes = videoPlayer.buffered.length > 0 ? 
+                    (videoPlayer.buffered.end(0) / videoDuration) * (1024 * 1024) : 0;
+                const elapsedSeconds = (Date.now() - startTime) / 1000;
+                
+                if (elapsedSeconds > 0 && videoBytes > lastLoadedBytes) {
+                    const bitsPerSecond = ((videoBytes - lastLoadedBytes) * 8) / elapsedSeconds;
+                    bitrateElement.textContent = `${Math.round(bitsPerSecond)} kbps`;
+                    lastLoadedBytes = videoBytes;
+                    startTime = Date.now();
+                }
+            }
+        }, 1000);
+        
+        videoPlayer.addEventListener('play', function() {
+            const sessionData = {
+                videoId: videoPlayer.currentSrc.split('/').pop(),
+                startTime: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                screenSize: `${window.innerWidth}x${window.innerHeight}`
+            };
+            sessionStorage.setItem('videoSession', JSON.stringify(sessionData));
+            
+            logStreamEvent('play');
+        });
+        
+        videoPlayer.addEventListener('ended', function() {
+            logStreamEvent('complete');
+        });
+        
+        videoPlayer.addEventListener('pause', function() {
+            logStreamEvent('pause');
+        });
+        
+        function logStreamEvent(eventType) {
+            console.log(`Stream event: ${eventType}`);
+            
+            const events = JSON.parse(localStorage.getItem('streamEvents') || '[]');
+            events.push({
+                type: eventType,
+                time: new Date().toISOString(),
+                videoId: videoPlayer.currentSrc.split('/').pop(),
+                position: videoPlayer.currentTime
+            });
+            localStorage.setItem('streamEvents', JSON.stringify(events));
+            
+            if (window.MetricsTracker) {
+                window.MetricsTracker.recordStreamEvent(
+                    videoPlayer.currentSrc.split('/').pop(),
+                    eventType,
+                    videoPlayer.currentTime,
+                    videoPlayer.duration,
+                    `${videoPlayer.videoWidth}x${videoPlayer.videoHeight}`
+                );
+            }
+        }
+
+        function fetchVideos() {
+            fetch('/api/video-info.json')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('videoSelect');
+                    select.innerHTML = '';
+                    
+                    data.videos.forEach(video => {
+                        const option = document.createElement('option');
+                        option.value = `/videos/${video.filename}`;
+                        option.textContent = video.title;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching videos:', error);
+                    const option = document.createElement('option');
+                    option.value = '/videos/sample.mp4';
+                    option.textContent = 'Sample Video';
+                    
+                    const select = document.getElementById('videoSelect');
+                    select.innerHTML = '';
+                    select.appendChild(option);
+                });
+        }
+
+        function changeVideo() {
+            const select = document.getElementById('videoSelect');
+            const video = document.getElementById('videoPlayer');
+            
+            video.src = select.value;
+            video.load();
+            video.play();
+            
+            startTime = Date.now();
+            loadedBytes = 0;
+            lastLoadedBytes = 0;
+            resolutionElement.textContent = 'Loading...';
+            bitrateElement.textContent = 'Calculating...';
+            bufferedElement.textContent = '0%';
+        }
+        
+        window.addEventListener('DOMContentLoaded', (event) => {
+            fetchVideos();
+        });
+    </script>
+    <script src="/js/metrics.js"></script>
+</body>
+</html>
+```">Avg. Watch Time</div>
+                <div class="metric-value" id="avgWatchTime">0:00</div>
+            </div>
+            <div class="metric-card" style="flex: 1; min-width: 200px; margin: 10px;">
+                <div class="metric-title">Bandwidth Usage</div>
+                <div class="metric-value" id="bandwidth">0 MB</div>
+            </div>
+        </div>
+
+        <h2>Recent Sessions</h2>
+        <table id="sessionsTable">
+            <thead>
+                <tr>
+                    <th>Video</th>
+                    <th>Start Time</th>
+                    <th>Duration</th>
+                    <th>Device</th>
+                    <th>Resolution</th>
+                </tr>
+            </thead>
+            <tbody id="sessionsBody">
+                <tr>
+                    <td colspan="5" style="text-align: center;">No sessions recorded yet</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Popular Videos</h2>
+        <table id="videosTable">
+            <thead>
+                <tr>
+                    <th>Video</th>
+                    <th>Views</th>
+                    <th>Avg. Watch Time</th>
+                    <th>Completion Rate</th>
+                </tr>
+            </thead>
+            <tbody id="videosBody">
+                <tr>
+                    <td colspan="4" style="text-align: center;">No video data available</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+
+        const generateDemoData = () => {
+            const events = JSON.parse(localStorage.getItem('streamEvents') || '[]');
+            const sessionData = JSON.parse(sessionStorage.getItem('videoSession') || '{}');
+            document.getElementById('activeStreams').textContent = Math.floor(Math.random() * 5) + 1;
+            document.getElementById('totalViews').textContent = events.filter(e => e.type === 'play').length || 
+                Math.floor(Math.random() * 100) + 10;
+            const watchTime = Math.floor(Math.random() * 500) + 60;
+            const minutes = Math.floor(watchTime / 60);
+            const seconds = watchTime % 60;
+            document.getElementById('avgWatchTime').textContent = 
+                `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+            document.getElementById('bandwidth').textContent = 
+                `${(Math.random() * 1000).toFixed(2)} MB`;
+            const sessionsBody = document.getElementById('sessionsBody');
+            sessionsBody.innerHTML = '';
+            if (sessionData.startTime) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${sessionData.videoId || 'sample.mp4'}</td>
+                    <td>${new Date(sessionData.startTime).toLocaleTimeString()}</td>
+                    <td>Active</td>
+                    <td>${sessionData.userAgent ? (sessionData.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop') : 'Unknown'}</td>
+                    <td>${sessionData.screenSize || '1920x1080'}</td>
+                `;
+                sessionsBody.appendChild(row);
+            }
+            
+            for (let i = 0; i < 3; i++) {
+                const row = document.createElement('tr');
+                const randomDuration = Math.floor(Math.random() * 500) + 30;
+                const minutes = Math.floor(randomDuration / 60);
+                const seconds = randomDuration % 60;
+                
+                row.innerHTML = `
+                    <td>sample.mp4</td>
+                    <td>${new Date(Date.now() - i * 3600000).toLocaleTimeString()}</td>
+                    <td>${minutes}:${seconds < 10 ? '0' + seconds : seconds}</td>
+                    <td>${Math.random() > 0.5 ? 'Mobile' : 'Desktop'}</td>
+                    <td>${Math.random() > 0.5 ? '1920x1080' : '640x360'}</td>
+                `;
+                sessionsBody.appendChild(row);
+            }
+            const videosBody = document.getElementById('videosBody');
+            videosBody.innerHTML = '';
+            const videoNames = ['sample.mp4', 'intro.mp4', 'tutorial.mp4'];
+            videoNames.forEach(name => {
+                const row = document.createElement('tr');
+                const views = Math.floor(Math.random() * 100) + 5;
+                const avgMinutes = Math.floor(Math.random() * 10) + 1;
+                const avgSeconds = Math.floor(Math.random() * 60);
+                const completionRate = Math.floor(Math.random() * 60) + 40;
+                
+                row.innerHTML = `
+                    <td>${name}</td>
+                    <td>${views}</td>
+                    <td>${avgMinutes}:${avgSeconds < 10 ? '0' + avgSeconds : avgSeconds}</td>
+                    <td>${completionRate}%</td>
+                `;
+                videosBody.appendChild(row);
+            });
+        };
+        
+        window.addEventListener('DOMContentLoaded', (event) => {
+            generateDemoData();
+            setInterval(generateDemoData, 10000);
+        });
+    </script>
+</body>
+</html>
