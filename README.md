@@ -14,7 +14,6 @@ A lightweight, dockerized video streaming server optimized for MP4 files with bu
 1. Clone this repository:
    ```bash
    git clone https://github.com/Metamind-Innovations/nancy_vr_video_streamer.git
-   cd video-streaming-server
    ```
 2. Copy your MP4 video files to the `videos` directory. Indicative VR videos regarding Ancient Greece could be found here (will be added later).
 
