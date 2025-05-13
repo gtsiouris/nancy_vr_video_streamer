@@ -15,7 +15,7 @@ A lightweight, dockerized video streaming server optimized for MP4 files with bu
    ```bash
    git clone https://github.com/Metamind-Innovations/nancy_vr_video_streamer.git
    ```
-2. Copy your MP4 video files to the `videos` directory. Indicative VR videos regarding Ancient Greece could be found here (will be added later).
+2. Copy your MP4 video files to the `videos` directory. Indicative VR videos regarding Ancient Greece could be found [here](https://uowmgr.sharepoint.com/:f:/r/sites/NANCYSNS/Shared%20Documents/WP6%20NANCY%20System%20Integration,%20Validation%20and%20Demo/Greek%20Outdoor%20Testbed/VR%20videos?csf=1&web=1&e=9l7Cnw).
 
 3. Build and start the Docker container:
    ```bash
