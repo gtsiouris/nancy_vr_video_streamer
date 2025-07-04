@@ -12,7 +12,10 @@ services:
     environment:
       # video storage URL should be placed HERE
       - VIDEO_SOURCE_URL=${VIDEO_SOURCE_URL}
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
     restart: unless-stopped
+    depends_on:
+      - nancy-grpc-server-side
   nancy-grpc-client-side:
     image: nancy-grpc
     container_name: nancy-grpc-client-side
