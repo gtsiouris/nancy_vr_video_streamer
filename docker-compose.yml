@@ -2,7 +2,7 @@ version: '3'
 
 services:
   video-server:
-    image: test
+    image: ghcr.io/nntamp/nancy-video-server:latest
     container_name: video-server
     ports:
       - "8080:80"
