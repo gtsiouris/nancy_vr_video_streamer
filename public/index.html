@@ -229,7 +229,7 @@
         const did = "did:nancy:greek-outdoor-application-8zmv2tr4Yj914UENSK5Vi";//do change with the local wallet did
         const issuerAddress = "10.10.10.40:50001";//do change with the local wallet ip:port
         const verifierAddress = "10.10.10.40:50000";//do change with the local wallet ip:port
-        const claims = "{\"age\": 20}";//do change with the local wallet claims
+        let claims = "{\"age\": 20}";//do change with the local wallet claims - will be updated with IMSI
         const payload = "vr video service";
 
         // const vcId = "did:nancy:vc-d2ad76f6-12b8-4dbe-bc27-ff2b0da80b47";
@@ -242,12 +242,41 @@
         let didDocument;
         let grantService;
 
-        // Start with LookupDID call
-        fetch('/nancy-grpc-client-side/did/lookupdid?value=' + did, {   
+        // Start with IMSI lookup, then proceed with authentication flow
+        fetch('/api/imsi/lookup', {  // Use local proxy endpoint instead of direct call
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
             },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`IMSI lookup failed! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('IMSI lookup response:', data);
+            
+            // Check if IMSI lookup was successful
+            if (data.success && data.imsi) {
+                // Parse existing claims and add IMSI
+                const existingClaims = JSON.parse(claims);
+                existingClaims.imsi = data.imsi;
+                claims = JSON.stringify(existingClaims);
+                console.log('Updated claims with IMSI:', claims);
+            } else {
+                console.warn('IMSI lookup was not successful or IMSI not found:', data);
+                // Continue with original claims if IMSI lookup fails
+            }
+            
+            // Now proceed with LookupDID call
+            return fetch('/nancy-grpc-client-side/did/lookupdid?value=' + did, {   
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            });
         })
         .then(response => {
             if (!response.ok) {
