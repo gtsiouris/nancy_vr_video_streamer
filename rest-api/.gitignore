@@ -1,6 +1,6 @@
 # gRPC generated code
-src/dlt_gateway_pb2.py
-src/dlt_gateway_pb2_grpc.py
+# src/dlt_gateway_pb2.py
+# src/dlt_gateway_pb2_grpc.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
