@@ -2,7 +2,7 @@ version: '3'
 
 services:
   video-server:
-    image: ghcr.io/nntamp/nancy-video-server:latest
+    image: ghcr.io/sidroco-holdings-ltd/nancy-video-server:latest
     container_name: video-server
     ports:
       - "8080:80"
@@ -30,7 +30,7 @@ services:
       - UVICORN_PORT=${UVICORN_PORT:-8000}
       - API_TITLE=${API_TITLE:-DLT Gateway REST API client-side}
   nancy-grpc-server-side:
-    image: nancy-grpc
+    image: ghcr.io/sidroco-holdings-ltd/nancy-grpc:latest
     container_name: nancy-grpc-server-side
     ports:
       - "8001:8000"
