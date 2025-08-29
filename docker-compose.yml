@@ -11,7 +11,7 @@ services:
       - ./logs:/var/log/nginx
     environment:
       # video storage URL should be placed HERE
-      - VIDEO_SOURCE_URL=https://github.com/gtsiouris/nancy_vr_video_streamer/docs/videos/1.mp4
+      - VIDEO_SOURCE_URL=https://github.com/gtsiouris/nancy_vr_video_streamer/raw/refs/heads/feat/rest/docs/videos/1.mp4
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     restart: unless-stopped
     depends_on:
