@@ -11,5 +11,5 @@ services:
       - ./logs:/var/log/nginx
     environment:
       # video storage URL should be placed HERE
-      - VIDEO_SOURCE_URL=${https://drive.google.com/file/d/1YMweSuiYWh9AwxS71FHyamVXEt7WbaZW/view?usp=sharing}
+      - VIDEO_SOURCE_URL=https://drive.google.com/file/d/1YMweSuiYWh9AwxS71FHyamVXEt7WbaZW/view?usp=sharing
     restart: unless-stopped
