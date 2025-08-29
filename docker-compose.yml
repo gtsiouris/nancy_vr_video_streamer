@@ -2,7 +2,7 @@ version: '3'
 
 services:
   video-server:
-    image: ghcr.io/sidroco-holdings-ltd/nancy-video-server:latest
+    image: ghcr.io/gtsiouris/mindsapp:feat-rest
     container_name: video-server
     ports:
       - "8080:80"
